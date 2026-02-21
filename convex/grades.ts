@@ -1,5 +1,5 @@
 // convex/grades.ts
-import { query, mutation } from "convex/server";
+import { query, mutation } from "./_generated/server";
 import { v } from "convex/values";
 import { requireRole } from "./_auth";
 
@@ -28,14 +28,20 @@ export const listByClassTermSubject = query({
       .withIndex("by_classId", (q) => q.eq("classId", args.classId))
       .collect();
 
-    const grades = await ctx.db.query("grades").withIndex("by_student_subject_term", (q) => {
-      // Can't query many studentIds at once with an index; MVP approach: fetch all then filter.
-      return q; // placeholder, we will do in-memory after collecting
-    }).collect();
+    const grades = await ctx.db
+      .query("grades")
+      .withIndex("by_student_subject_term", (q) => {
+        // Can't query many studentIds at once with an index; MVP approach: fetch all then filter.
+        return q; // placeholder, we will do in-memory after collecting
+      })
+      .collect();
 
     const studentIds = new Set(students.map((s) => s._id));
     return grades.filter(
-      (g) => studentIds.has(g.studentId) && g.subjectId === args.subjectId && g.term === args.term
+      (g) =>
+        studentIds.has(g.studentId) &&
+        g.subjectId === args.subjectId &&
+        g.term === args.term,
     );
   },
 });
