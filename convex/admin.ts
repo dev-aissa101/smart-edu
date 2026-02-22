@@ -13,7 +13,7 @@ export const createTeacher = mutation({
 
     // Check duplicate
     const existing = await ctx.db
-      .query("users")
+      .query("appUsers")
       .withIndex("by_email", (q) => q.eq("email", args.email))
       .unique();
 
@@ -21,7 +21,7 @@ export const createTeacher = mutation({
       throw new Error("User already exists");
     }
 
-    return await ctx.db.insert("users", {
+    return await ctx.db.insert("appUsers", {
       email: args.email,
       name: args.name,
       role: "teacher",

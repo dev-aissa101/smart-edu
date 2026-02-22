@@ -11,7 +11,7 @@ import {
 
 import { Link, useLocation } from "react-router-dom";
 import { useAuthActions } from "@convex-dev/auth/react";
-import { useQuery } from "convex/react";
+import { useQuery, useConvexAuth } from "convex/react";
 import { api } from "../../convex/_generated/api";
 
 import {
@@ -22,6 +22,7 @@ import {
   BookOpen,
   Shield,
   LogOut,
+  ChartPieIcon,
 } from "lucide-react";
 
 const mainItems = [
@@ -48,6 +49,11 @@ const mainItems = [
   {
     title: "Grades",
     url: "/grades",
+    icon: ChartPieIcon,
+  },
+  {
+    title: "Subjects",
+    url: "/subjects",
     icon: BookOpen,
   },
 ];
@@ -55,9 +61,9 @@ const mainItems = [
 export function AppSidebar() {
   const { pathname } = useLocation();
   const { signOut } = useAuthActions();
+  const { isAuthenticated } = useConvexAuth();
 
-  // Get current user's role
-  const me = useQuery(api._auth.myRole);
+  const me = useQuery(api._auth.myRole, isAuthenticated ? {} : "skip");
 
   return (
     <Sidebar>
@@ -116,6 +122,21 @@ export function AppSidebar() {
 
       {/* ================= FOOTER ================= */}
       <SidebarFooter className="px-4 py-4 border-t">
+        {/* Role + email */}
+        <div className="mb-3">
+          <div className="text-xs text-muted-foreground">Role</div>
+          <div className="text-sm font-medium capitalize">
+            {me?.role ?? "—"}
+          </div>
+
+          {me?.email && (
+            <div className="mt-1 text-xs text-muted-foreground truncate">
+              {me.email}
+            </div>
+          )}
+        </div>
+
+        {/* Logout */}
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton
@@ -127,14 +148,6 @@ export function AppSidebar() {
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
-
-        {/* User info */}
-        {me && (
-          <div className="mt-3 text-xs text-muted-foreground">
-            <div>{me.email}</div>
-            <div className="capitalize">{me.role}</div>
-          </div>
-        )}
       </SidebarFooter>
     </Sidebar>
   );

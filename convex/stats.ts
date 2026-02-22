@@ -1,21 +1,29 @@
 import { query } from "./_generated/server";
-import { requireRole } from "./_auth";
+import { getCurrentUser } from "./_auth";
 
 function todayISO() {
-  const d = new Date();
-  const yyyy = d.getFullYear();
-  const mm = String(d.getMonth() + 1).padStart(2, "0");
-  const dd = String(d.getDate()).padStart(2, "0");
-  return `${yyyy}-${mm}-${dd}`;
+  return new Date().toISOString().slice(0, 10);
 }
 
 export const overview = query({
   args: {},
   handler: async (ctx) => {
-    await requireRole(ctx, ["admin", "teacher"]);
+    const user = await getCurrentUser(ctx);
 
-    const classes = await ctx.db.query("classes").collect();
-    const students = await ctx.db.query("students").collect();
+    // ⬅️ Not ready yet → return safe defaults
+    if (!user) {
+      return {
+        classes: 0,
+        students: 0,
+        attendanceToday: 0,
+        today: todayISO(),
+      };
+    }
+
+    const [classes, students] = await Promise.all([
+      ctx.db.query("classes").collect(),
+      ctx.db.query("students").collect(),
+    ]);
 
     const attendanceToday = await ctx.db
       .query("attendance")
@@ -26,6 +34,7 @@ export const overview = query({
       classes: classes.length,
       students: students.length,
       attendanceToday: attendanceToday.length,
+      today: todayISO(),
     };
   },
 });

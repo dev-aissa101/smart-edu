@@ -1,64 +1,100 @@
-import { mutation } from "./_generated/server";
+import { query, mutation } from "./_generated/server";
 import { ConvexError, v } from "convex/values";
 
 export type Role = "admin" | "teacher";
 
-export async function getIdentityEmail(ctx: any): Promise<string> {
-  const identity = await ctx.auth.getUserIdentity();
-  if (!identity?.email) {
-    throw new ConvexError("Not authenticated");
-  }
-  return identity.email;
+async function getIdentity(ctx: any) {
+  return await ctx.auth.getUserIdentity();
 }
 
 export async function getCurrentUser(ctx: any) {
-  const email = await getIdentityEmail(ctx);
+  const identity = await getIdentity(ctx);
+  if (!identity) return null;
 
-  const user = await ctx.db
-    .query("users")
-    .withIndex("by_email", (q: any) => q.eq("email", email))
-    .unique();
+  const tokenIdentifier: string | undefined = identity.tokenIdentifier;
 
-  if (!user) throw new ConvexError("User not found");
-  if (user.isActive === false) throw new ConvexError("User disabled");
+  if (tokenIdentifier) {
+    const byToken = await ctx.db
+      .query("appUsers")
+      .withIndex("by_token", (q: any) =>
+        q.eq("tokenIdentifier", tokenIdentifier)
+      )
+      .unique();
 
-  return user;
+    if (byToken) {
+      if (byToken.isActive === false) throw new ConvexError("User disabled");
+      return byToken;
+    }
+  }
+
+  return null;
 }
 
 export async function requireRole(ctx: any, roles: Role[]) {
   const user = await getCurrentUser(ctx);
-  if (!roles.includes(user.role)) {
-    throw new ConvexError("Forbidden");
-  }
+  if (!user) return null;
+  if (!roles.includes(user.role)) throw new ConvexError("Forbidden");
   return user;
 }
 
-/**
- * Create user on first login
- * FIRST = admin, others = teacher
- */
 export const ensureUser = mutation({
   args: {
     name: v.optional(v.string()),
+    email: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const email = await getIdentityEmail(ctx);
+    const identity = await getIdentity(ctx);
+    if (!identity) return null;
 
-    // Already exists
-    const existing = await ctx.db
-      .query("users")
-      .withIndex("by_email", (q: any) => q.eq("email", email))
+    const tokenIdentifier: string = identity.tokenIdentifier;
+
+    // 1) Already linked by tokenIdentifier?
+    const byToken = await ctx.db
+      .query("appUsers")
+      .withIndex("by_token", (q: any) =>
+        q.eq("tokenIdentifier", tokenIdentifier)
+      )
       .unique();
 
-    if (existing) return existing;
+    if (byToken) {
+      if (!byToken.email && args.email) {
+        await ctx.db.patch(byToken._id, { email: args.email });
+        return await ctx.db.get(byToken._id);
+      }
+      if (byToken.isActive === false) throw new ConvexError("User disabled");
+      return byToken;
+    }
 
-    // Count users
-    const count = (await ctx.db.query("users").collect()).length;
+    // 2) Link pre-created user by email (admin added teacher earlier)
+    if (args.email) {
+      const byEmail = await ctx.db
+        .query("appUsers")
+        .withIndex("by_email", (q: any) => q.eq("email", args.email!))
+        .unique();
 
+      if (byEmail) {
+        await ctx.db.patch(byEmail._id, {
+          tokenIdentifier,
+          name: byEmail.name ?? args.name,
+          email: byEmail.email ?? args.email,
+          isActive: byEmail.isActive ?? true,
+        });
+        return await ctx.db.get(byEmail._id);
+      }
+    }
+
+    // 3) Create new user row ONLY when email is provided (setup/signup)
+    const count = (await ctx.db.query("appUsers").collect()).length;
     const role: Role = count === 0 ? "admin" : "teacher";
 
-    const id = await ctx.db.insert("users", {
-      email,
+    if (!args.email) {
+      // No email available -> don't create, just skip
+      return null;
+    }
+
+    const id = await ctx.db.insert("appUsers", {
+      tokenIdentifier,
+      email: args.email,
       name: args.name,
       role,
       isActive: true,
@@ -66,5 +102,19 @@ export const ensureUser = mutation({
     });
 
     return await ctx.db.get(id);
+  },
+});
+
+export const myRole = query({
+  args: {},
+  handler: async (ctx) => {
+    const user = await getCurrentUser(ctx);
+    if (!user) return null;
+
+    return {
+      role: user.role,
+      email: user.email ?? null,
+      name: user.name ?? null,
+    };
   },
 });

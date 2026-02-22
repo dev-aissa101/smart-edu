@@ -1,6 +1,7 @@
 import { createBrowserRouter } from "react-router-dom";
 
 import ProtectedRoute from "@/auth/ProtectedRoute";
+import SetupRoute from "@/auth/SetupRoute";
 
 import DashboardPage from "@/pages/Dashboard";
 import LoginPage from "@/pages/Login";
@@ -11,9 +12,30 @@ import StudentDetailsPage from "@/pages/StudentDetails";
 import AttendancePage from "@/pages/Attendance";
 import GradesPage from "@/pages/Grades";
 import AdminUsersPage from "./pages/AdminUsers";
+import AdminSignupPage from "@/pages/AdminSignup";
+import SubjectsPage from "./pages/Subjects";
 
 export const router = createBrowserRouter([
   { path: "/login", element: <LoginPage /> },
+
+  {
+    path: "/setup",
+    element: (
+      <SetupRoute>
+        <AdminSignupPage />
+      </SetupRoute>
+    ),
+  },
+
+  {
+    path: "/subjects",
+    element: (
+      <ProtectedRoute>
+        <SubjectsPage />
+      </ProtectedRoute>
+    ),
+  },
+
   {
     path: "/admin/users",
     element: (
@@ -22,6 +44,7 @@ export const router = createBrowserRouter([
       </ProtectedRoute>
     ),
   },
+
   {
     path: "/",
     element: (
@@ -30,6 +53,7 @@ export const router = createBrowserRouter([
       </ProtectedRoute>
     ),
   },
+
   {
     path: "/classes",
     element: (
@@ -38,6 +62,7 @@ export const router = createBrowserRouter([
       </ProtectedRoute>
     ),
   },
+
   {
     path: "/classes/:classId/students",
     element: (
@@ -46,6 +71,7 @@ export const router = createBrowserRouter([
       </ProtectedRoute>
     ),
   },
+
   {
     path: "/students",
     element: (
@@ -54,6 +80,7 @@ export const router = createBrowserRouter([
       </ProtectedRoute>
     ),
   },
+
   {
     path: "/students/:studentId",
     element: (
@@ -62,6 +89,7 @@ export const router = createBrowserRouter([
       </ProtectedRoute>
     ),
   },
+
   {
     path: "/attendance",
     element: (
@@ -70,6 +98,7 @@ export const router = createBrowserRouter([
       </ProtectedRoute>
     ),
   },
+
   {
     path: "/grades",
     element: (

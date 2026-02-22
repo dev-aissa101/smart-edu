@@ -11,13 +11,11 @@ import {
 import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { useAuthActions } from "@convex-dev/auth/react";
-import { useNavigate } from "react-router-dom";
 
 export function LoginForm({
   className,
   ...props
 }: React.ComponentProps<"div">) {
-  const navigate = useNavigate();
   const { signIn } = useAuthActions();
 
   const [email, setEmail] = useState("");
@@ -43,8 +41,6 @@ export function LoginForm({
         password,
         flow: "signIn", // ✅ login only
       });
-
-      navigate("/", { replace: true });
     } catch (err: any) {
       setError(err?.message ?? "Login failed.");
     } finally {

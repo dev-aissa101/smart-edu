@@ -14,7 +14,7 @@ export const list = query({
   args: {},
   handler: async (ctx) => {
     await requireRole(ctx, ["admin"]);
-    return await ctx.db.query("users").collect();
+    return await ctx.db.query("appUsers").collect();
   },
 });
 
@@ -27,10 +27,14 @@ export const createTeacher = mutation({
   handler: async (ctx, args) => {
     await requireRole(ctx, ["admin"]);
 
-    const existing = await ctx.db.query("users").withIndex("by_email", (q) => q.eq("email", args.email)).unique();
+    const existing = await ctx.db
+      .query("appUsers")
+      .withIndex("by_email", (q) => q.eq("email", args.email))
+      .unique();
+
     if (existing) throw new ConvexError("Email already exists");
 
-    const id = await ctx.db.insert("users", {
+    const id = await ctx.db.insert("appUsers", {
       email: args.email,
       name: args.name,
       role: args.role ?? "teacher",
@@ -43,7 +47,7 @@ export const createTeacher = mutation({
 });
 
 export const setActive = mutation({
-  args: { userId: v.id("users"), isActive: v.boolean() },
+  args: { userId: v.id("appUsers"), isActive: v.boolean() },
   handler: async (ctx, args) => {
     await requireRole(ctx, ["admin"]);
     await ctx.db.patch(args.userId, { isActive: args.isActive });
@@ -51,7 +55,10 @@ export const setActive = mutation({
 });
 
 export const setRole = mutation({
-  args: { userId: v.id("users"), role: v.union(v.literal("admin"), v.literal("teacher")) },
+  args: {
+    userId: v.id("appUsers"),
+    role: v.union(v.literal("admin"), v.literal("teacher")),
+  },
   handler: async (ctx, args) => {
     await requireRole(ctx, ["admin"]);
     await ctx.db.patch(args.userId, { role: args.role });
