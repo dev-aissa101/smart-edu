@@ -9,11 +9,15 @@
  */
 
 import type * as _auth from "../_auth.js";
+import type * as admin from "../admin.js";
 import type * as attendance from "../attendance.js";
+import type * as auth from "../auth.js";
 import type * as classes from "../classes.js";
 import type * as grades from "../grades.js";
+import type * as http from "../http.js";
 import type * as logs from "../logs.js";
-import type * as seed from "../seed.js";
+import type * as setup from "../setup.js";
+import type * as stats from "../stats.js";
 import type * as students from "../students.js";
 import type * as subjects from "../subjects.js";
 import type * as users from "../users.js";
@@ -26,11 +30,15 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   _auth: typeof _auth;
+  admin: typeof admin;
   attendance: typeof attendance;
+  auth: typeof auth;
   classes: typeof classes;
   grades: typeof grades;
+  http: typeof http;
   logs: typeof logs;
-  seed: typeof seed;
+  setup: typeof setup;
+  stats: typeof stats;
   students: typeof students;
   subjects: typeof subjects;
   users: typeof users;
