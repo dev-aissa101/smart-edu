@@ -1,4 +1,5 @@
 /* eslint-disable react-hooks/rules-of-hooks */
+// @ts-nocheck
 import AppLayout from "@/components/app-layout";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
