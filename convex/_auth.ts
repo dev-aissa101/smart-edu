@@ -47,6 +47,8 @@ export const ensureUser = mutation({
     if (!identity) return null;
 
     const tokenIdentifier: string = identity.tokenIdentifier;
+    const email = args.email ?? identity.email;
+    const name = args.name ?? identity.name;
 
     // 1) Already linked by tokenIdentifier?
     const byToken = await ctx.db
@@ -57,8 +59,8 @@ export const ensureUser = mutation({
       .unique();
 
     if (byToken) {
-      if (!byToken.email && args.email) {
-        await ctx.db.patch(byToken._id, { email: args.email });
+      if (!byToken.email && email) {
+        await ctx.db.patch(byToken._id, { email });
         return await ctx.db.get(byToken._id);
       }
       if (byToken.isActive === false) throw new ConvexError("User disabled");
@@ -66,17 +68,17 @@ export const ensureUser = mutation({
     }
 
     // 2) Link pre-created user by email (admin added teacher earlier)
-    if (args.email) {
+    if (email) {
       const byEmail = await ctx.db
         .query("appUsers")
-        .withIndex("by_email", (q: any) => q.eq("email", args.email!))
+        .withIndex("by_email", (q: any) => q.eq("email", email))
         .unique();
 
       if (byEmail) {
         await ctx.db.patch(byEmail._id, {
           tokenIdentifier,
-          name: byEmail.name ?? args.name,
-          email: byEmail.email ?? args.email,
+          name: byEmail.name ?? name,
+          email: byEmail.email ?? email,
           isActive: byEmail.isActive ?? true,
         });
         return await ctx.db.get(byEmail._id);
@@ -87,15 +89,15 @@ export const ensureUser = mutation({
     const count = (await ctx.db.query("appUsers").collect()).length;
     const role: Role = count === 0 ? "admin" : "teacher";
 
-    if (!args.email) {
+    if (!email) {
       // No email available -> don't create, just skip
       return null;
     }
 
     const id = await ctx.db.insert("appUsers", {
       tokenIdentifier,
-      email: args.email,
-      name: args.name,
+      email,
+      name,
       role,
       isActive: true,
       createdAt: Date.now(),
