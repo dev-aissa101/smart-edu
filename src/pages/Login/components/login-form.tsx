@@ -18,6 +18,8 @@ export function LoginForm({
 }: React.ComponentProps<"div">) {
   const { signIn } = useAuthActions();
 
+  const PENDING_LOGIN_EMAIL_KEY = "pendingLoginEmail";
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
@@ -41,6 +43,7 @@ export function LoginForm({
         password,
         flow: "signIn", // ✅ login only
       });
+      localStorage.setItem(PENDING_LOGIN_EMAIL_KEY, e1);
     } catch (err: any) {
       setError(err?.message ?? "Login failed.");
     } finally {
