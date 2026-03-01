@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { toast } from "@/components/ui/toast";
 import {
   Table,
   TableBody,
@@ -67,14 +68,22 @@ export default function ClassesPage() {
             <Button
               className="w-full"
               onClick={async () => {
-                if (!name.trim()) return;
-                await createClass({
-                  name: name.trim(),
-                  level: level || undefined,
-                  year: year || undefined,
-                });
-                setName("");
-                setLevel("");
+                if (!name.trim()) {
+                  toast({ title: "Validation error", description: "Class name is required.", variant: "error" });
+                  return;
+                }
+                try {
+                  await createClass({
+                    name: name.trim(),
+                    level: level || undefined,
+                    year: year || undefined,
+                  });
+                  setName("");
+                  setLevel("");
+                  toast({ title: "Class created", description: "Class saved successfully.", variant: "success" });
+                } catch (e: any) {
+                  toast({ title: "Create failed", description: e?.message ?? "Failed to create class.", variant: "error" });
+                }
               }}
             >
               Add

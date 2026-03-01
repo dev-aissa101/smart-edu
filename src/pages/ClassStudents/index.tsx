@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { toast } from "@/components/ui/toast";
 import {
   Table,
   TableBody,
@@ -76,14 +77,22 @@ export default function ClassStudentsPage() {
               <Button
                 className="w-full"
                 onClick={async () => {
-                  if (!firstName.trim() || !lastName.trim()) return;
-                  await createStudent({
-                    firstName: firstName.trim(),
-                    lastName: lastName.trim(),
-                    classId: classId as any,
-                  });
-                  setFirstName("");
-                  setLastName("");
+                  if (!firstName.trim() || !lastName.trim()) {
+                    toast({ title: "Validation error", description: "First name and last name are required.", variant: "error" });
+                    return;
+                  }
+                  try {
+                    await createStudent({
+                      firstName: firstName.trim(),
+                      lastName: lastName.trim(),
+                      classId: classId as any,
+                    });
+                    setFirstName("");
+                    setLastName("");
+                    toast({ title: "Student added", description: "Student created successfully.", variant: "success" });
+                  } catch (e: any) {
+                    toast({ title: "Create failed", description: e?.message ?? "Failed to add student.", variant: "error" });
+                  }
                 }}
               >
                 Add

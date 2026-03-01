@@ -26,6 +26,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { toast } from "@/components/ui/toast";
 
 const TERMS = ["S1", "S2", "T1", "T2", "T3"] as const;
 
@@ -112,12 +113,20 @@ export default function StudentDetailsPage() {
             </div>
             <Button
               onClick={async () => {
-                if (!firstName.trim() || !lastName.trim()) return;
-                await updateStudent({
-                  studentId: student._id,
-                  firstName: firstName.trim(),
-                  lastName: lastName.trim(),
-                });
+                if (!firstName.trim() || !lastName.trim()) {
+                  toast({ title: "Validation error", description: "First name and last name are required.", variant: "error" });
+                  return;
+                }
+                try {
+                  await updateStudent({
+                    studentId: student._id,
+                    firstName: firstName.trim(),
+                    lastName: lastName.trim(),
+                  });
+                  toast({ title: "Student updated", description: "Profile saved successfully.", variant: "success" });
+                } catch (e: any) {
+                  toast({ title: "Update failed", description: e?.message ?? "Failed to update student.", variant: "error" });
+                }
               }}
             >
               Save
@@ -181,15 +190,23 @@ export default function StudentDetailsPage() {
 
                 <Button
                   onClick={async () => {
-                    if (!subjectId) return;
-                    await addGrade({
-                      studentId: student._id,
-                      subjectId: subjectId as any,
-                      term,
-                      score,
-                      maxScore: 20,
-                    });
-                    setScore(0);
+                    if (!subjectId) {
+                      toast({ title: "Validation error", description: "Please select a subject.", variant: "error" });
+                      return;
+                    }
+                    try {
+                      await addGrade({
+                        studentId: student._id,
+                        subjectId: subjectId as any,
+                        term,
+                        score,
+                        maxScore: 20,
+                      });
+                      setScore(0);
+                      toast({ title: "Grade added", description: "Grade saved successfully.", variant: "success" });
+                    } catch (e: any) {
+                      toast({ title: "Add grade failed", description: e?.message ?? "Failed to add grade.", variant: "error" });
+                    }
                   }}
                 >
                   Add

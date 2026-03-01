@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { toast } from "@/components/ui/toast";
 
 export default function AdminUsersPage() {
   const users = useQuery(api.users.list);
@@ -37,10 +38,18 @@ export default function AdminUsersPage() {
           <div className="flex items-end">
             <Button
               onClick={async () => {
-                if (!email) return;
-                await createTeacher({ email, name });
-                setEmail("");
-                setName("");
+                if (!email) {
+                  toast({ title: "Validation error", description: "Email is required.", variant: "error" });
+                  return;
+                }
+                try {
+                  await createTeacher({ email, name });
+                  setEmail("");
+                  setName("");
+                  toast({ title: "Teacher added", description: "User created successfully.", variant: "success" });
+                } catch (e: any) {
+                  toast({ title: "Create failed", description: e?.message ?? "Failed to add teacher.", variant: "error" });
+                }
               }}
             >
               Add
