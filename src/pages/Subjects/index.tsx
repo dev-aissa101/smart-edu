@@ -16,14 +16,14 @@ import {
 import { Label } from "@/components/ui/label";
 
 import { Plus, Pencil, Trash2, BookOpen } from "lucide-react";
+import { toast } from "@/components/ui/toast";
 
 type SubjectForm = {
   name: string;
-  code: string;
-  description: string;
+  coefficient: string;
 };
 
-const emptyForm: SubjectForm = { name: "", code: "", description: "" };
+const emptyForm: SubjectForm = { name: "", coefficient: "1" };
 
 export default function SubjectsPage() {
   const { isAuthenticated } = useConvexAuth();
@@ -66,8 +66,7 @@ export default function SubjectsPage() {
     setEditingId(subject._id);
     setForm({
       name: subject.name ?? "",
-      code: subject.code ?? "",
-      description: subject.description ?? "",
+      coefficient: String(subject.coefficient ?? 1),
     });
     setError(null);
     setOpen(true);
@@ -76,8 +75,26 @@ export default function SubjectsPage() {
   async function onSave() {
     setError(null);
     const name = form.name.trim();
-    if (!name) {
-      setError("Subject name is required.");
+    const coefficient = Number(form.coefficient);
+
+    if (!name || !form.coefficient.trim()) {
+      const message = "Name and coefficient are required.";
+      setError(message);
+      toast({ title: "Validation error", description: message, variant: "error" });
+      return;
+    }
+
+    if (name.length < 2) {
+      const message = "Name must be at least 2 characters.";
+      setError(message);
+      toast({ title: "Validation error", description: message, variant: "error" });
+      return;
+    }
+
+    if (!Number.isFinite(coefficient) || coefficient <= 0) {
+      const message = "Coefficient must be a number greater than 0.";
+      setError(message);
+      toast({ title: "Validation error", description: message, variant: "error" });
       return;
     }
 
@@ -86,20 +103,21 @@ export default function SubjectsPage() {
       if (mode === "create") {
         await createSubject({
           name,
-          code: form.code.trim() || undefined,
-          description: form.description.trim() || undefined,
+          coefficient,
         });
       } else {
         await updateSubject({
           id: editingId,
           name,
-          code: form.code.trim() || undefined,
-          description: form.description.trim() || undefined,
+          coefficient,
         });
       }
       setOpen(false);
+      toast({ title: mode === "create" ? "Subject created" : "Subject updated", description: "Saved successfully.", variant: "success" });
     } catch (e: any) {
-      setError(e?.message ?? "Failed to save.");
+      const message = e?.message ?? "Failed to save.";
+      setError(message);
+      toast({ title: "Save failed", description: message, variant: "error" });
     } finally {
       setSaving(false);
     }
@@ -109,8 +127,10 @@ export default function SubjectsPage() {
     if (!confirm("Delete this subject?")) return;
     try {
       await removeSubject({ id });
+      toast({ title: "Subject deleted", description: "Deleted successfully.", variant: "success" });
     } catch (e: any) {
-      alert(e?.message ?? "Failed to delete.");
+      const message = e?.message ?? "Failed to delete.";
+      toast({ title: "Delete failed", description: message, variant: "error" });
     }
   }
 
@@ -129,7 +149,7 @@ export default function SubjectsPage() {
             <Input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search by name, code, description..."
+              placeholder="Search by name or coefficient..."
             />
           </div>
 
@@ -170,7 +190,7 @@ export default function SubjectsPage() {
                 <div className="min-w-0">
                   <CardTitle className="truncate">{s.name}</CardTitle>
                   <div className="text-xs text-muted-foreground">
-                    {s.code ? `Code: ${s.code}` : "No code"}
+                    Coefficient: {s.coefficient ?? 1}
                   </div>
                 </div>
 
@@ -197,11 +217,6 @@ export default function SubjectsPage() {
                 </div>
               </CardHeader>
 
-              {s.description && (
-                <CardContent className="pt-0 text-sm text-muted-foreground">
-                  {s.description}
-                </CardContent>
-              )}
             </Card>
           ))}
         </div>
@@ -230,26 +245,17 @@ export default function SubjectsPage() {
             </div>
 
             <div className="grid gap-2">
-              <Label htmlFor="code">Code</Label>
+              <Label htmlFor="coefficient">Coefficient</Label>
               <Input
-                id="code"
-                value={form.code}
+                id="coefficient"
+                type="number"
+                min={0.25}
+                step="0.25"
+                value={form.coefficient}
                 onChange={(e) =>
-                  setForm((p) => ({ ...p, code: e.target.value }))
+                  setForm((p) => ({ ...p, coefficient: e.target.value }))
                 }
-                placeholder="e.g. MATH-101"
-              />
-            </div>
-
-            <div className="grid gap-2">
-              <Label htmlFor="desc">Description</Label>
-              <Input
-                id="desc"
-                value={form.description}
-                onChange={(e) =>
-                  setForm((p) => ({ ...p, description: e.target.value }))
-                }
-                placeholder="Short description..."
+                placeholder="e.g. 2"
               />
             </div>
 

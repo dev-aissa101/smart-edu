@@ -7,13 +7,14 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { toast } from "@/components/ui/toast";
 
 export default function AdminUsersPage() {
   const users = useQuery(api.users.list);
   const createTeacher = useMutation(api.admin.createTeacher);
 
   const [email, setEmail] = useState("");
-  const [name, setName] = useState("");
+  const [password, setPassword] = useState("");
 
   return (
     <AppLayout>
@@ -21,7 +22,7 @@ export default function AdminUsersPage() {
 
       <Card className="mb-6">
         <CardHeader>
-          <CardTitle>Add Teacher</CardTitle>
+          <CardTitle>Add Teacher Account</CardTitle>
         </CardHeader>
         <CardContent className="grid gap-4 md:grid-cols-3">
           <div>
@@ -30,17 +31,36 @@ export default function AdminUsersPage() {
           </div>
 
           <div>
-            <Label>Name</Label>
-            <Input value={name} onChange={(e) => setName(e.target.value)} />
+            <Label>Password</Label>
+            <Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} />
           </div>
 
           <div className="flex items-end">
             <Button
               onClick={async () => {
-                if (!email) return;
-                await createTeacher({ email, name });
-                setEmail("");
-                setName("");
+                const e1 = email.trim();
+                const p1 = password;
+                const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e1);
+                if (!e1 || !p1) {
+                  toast({ title: "Validation error", description: "Email and password are required.", variant: "error" });
+                  return;
+                }
+                if (!emailValid) {
+                  toast({ title: "Validation error", description: "Please enter a valid teacher email.", variant: "error" });
+                  return;
+                }
+                if (p1.length < 6) {
+                  toast({ title: "Validation error", description: "Password must be at least 6 characters.", variant: "error" });
+                  return;
+                }
+                try {
+                  await createTeacher({ email: e1, password: p1 });
+                  setEmail("");
+                  setPassword("");
+                  toast({ title: "Teacher added", description: "User created successfully.", variant: "success" });
+                } catch (e: any) {
+                  toast({ title: "Create failed", description: e?.message ?? "Failed to add teacher.", variant: "error" });
+                }
               }}
             >
               Add

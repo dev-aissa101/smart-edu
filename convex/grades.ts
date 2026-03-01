@@ -1,6 +1,6 @@
 // convex/grades.ts
 import { query, mutation } from "./_generated/server";
-import { v } from "convex/values";
+import { ConvexError, v } from "convex/values";
 import { requireRole } from "./_auth";
 
 export const listByStudent = query({
@@ -32,7 +32,7 @@ export const listByClassTermSubject = query({
       .query("grades")
       .withIndex("by_student_subject_term", (q) => {
         // Can't query many studentIds at once with an index; MVP approach: fetch all then filter.
-        return q; // placeholder, we will do in-memory after collecting
+        return q;
       })
       .collect();
 
@@ -59,12 +59,60 @@ export const add = mutation({
   },
   handler: async (ctx, args) => {
     const user = await requireRole(ctx, ["admin", "teacher"]);
+
+    if (args.score < 0 || args.score > 20) {
+      throw new ConvexError("Score must be between 0 and 20");
+    }
+
+    const subject = await ctx.db.get(args.subjectId);
+    if (!subject) throw new ConvexError("Subject not found");
+
+    const existing = await ctx.db
+      .query("grades")
+      .withIndex("by_student_subject_term", (q) =>
+        q
+          .eq("studentId", args.studentId)
+          .eq("subjectId", args.subjectId)
+          .eq("term", args.term),
+      )
+      .unique();
+
+    if (existing) {
+      throw new ConvexError(
+        "A grade for this subject already exists for this student in this term",
+      );
+    }
+
     return await ctx.db.insert("grades", {
       ...args,
       maxScore: args.maxScore ?? 20,
-      coefficient: args.coefficient ?? 1,
+      coefficient: subject.coefficient ?? 1,
+      note: args.note?.trim() || undefined,
       createdAt: Date.now(),
       createdBy: user._id,
+    });
+  },
+});
+
+export const update = mutation({
+  args: {
+    gradeId: v.id("grades"),
+    score: v.number(),
+    note: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    await requireRole(ctx, ["admin", "teacher"]);
+
+    if (args.score < 0 || args.score > 20) {
+      throw new ConvexError("Score must be between 0 and 20");
+    }
+
+    const existing = await ctx.db.get(args.gradeId);
+    if (!existing) throw new ConvexError("Grade not found");
+
+    await ctx.db.patch(args.gradeId, {
+      score: args.score,
+      note: args.note?.trim() || undefined,
     });
   },
 });
@@ -72,7 +120,7 @@ export const add = mutation({
 export const remove = mutation({
   args: { gradeId: v.id("grades") },
   handler: async (ctx, args) => {
-    await requireRole(ctx, ["admin"]);
+    await requireRole(ctx, ["admin", "teacher"]);
     await ctx.db.delete(args.gradeId);
   },
 });

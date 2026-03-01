@@ -11,12 +11,15 @@ import {
 import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { useAuthActions } from "@convex-dev/auth/react";
+import { toast } from "@/components/ui/toast";
 
 export function LoginForm({
   className,
   ...props
 }: React.ComponentProps<"div">) {
   const { signIn } = useAuthActions();
+
+  const PENDING_LOGIN_EMAIL_KEY = "pendingLoginEmail";
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -29,8 +32,17 @@ export function LoginForm({
     setError(null);
 
     const e1 = email.trim();
+    const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e1);
     if (!e1 || !password) {
-      setError("Email and password are required.");
+      const message = "Email and password are required.";
+      setError(message);
+      toast({ title: "Validation error", description: message, variant: "error" });
+      return;
+    }
+    if (!emailValid) {
+      const message = "Please enter a valid email address.";
+      setError(message);
+      toast({ title: "Validation error", description: message, variant: "error" });
       return;
     }
 
@@ -41,8 +53,12 @@ export function LoginForm({
         password,
         flow: "signIn", // ✅ login only
       });
+      localStorage.setItem(PENDING_LOGIN_EMAIL_KEY, e1);
+      toast({ title: "Login successful", description: "Welcome back!", variant: "success" });
     } catch (err: any) {
-      setError(err?.message ?? "Login failed.");
+      const message = err?.message ?? "Login failed.";
+      setError(message);
+      toast({ title: "Login failed", description: message, variant: "error" });
     } finally {
       setLoading(false);
     }
