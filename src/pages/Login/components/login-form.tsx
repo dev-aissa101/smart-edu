@@ -32,8 +32,17 @@ export function LoginForm({
     setError(null);
 
     const e1 = email.trim();
+    const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e1);
     if (!e1 || !password) {
-      setError("Email and password are required.");
+      const message = "Email and password are required.";
+      setError(message);
+      toast({ title: "Validation error", description: message, variant: "error" });
+      return;
+    }
+    if (!emailValid) {
+      const message = "Please enter a valid email address.";
+      setError(message);
+      toast({ title: "Validation error", description: message, variant: "error" });
       return;
     }
 

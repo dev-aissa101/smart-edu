@@ -113,15 +113,21 @@ export default function StudentDetailsPage() {
             </div>
             <Button
               onClick={async () => {
-                if (!firstName.trim() || !lastName.trim()) {
+                const first = firstName.trim();
+                const last = lastName.trim();
+                if (!first || !last) {
                   toast({ title: "Validation error", description: "First name and last name are required.", variant: "error" });
+                  return;
+                }
+                if (first.length < 2 || last.length < 2) {
+                  toast({ title: "Validation error", description: "Names must be at least 2 characters.", variant: "error" });
                   return;
                 }
                 try {
                   await updateStudent({
                     studentId: student._id,
-                    firstName: firstName.trim(),
-                    lastName: lastName.trim(),
+                    firstName: first,
+                    lastName: last,
                   });
                   toast({ title: "Student updated", description: "Profile saved successfully.", variant: "success" });
                 } catch (e: any) {
@@ -183,6 +189,9 @@ export default function StudentDetailsPage() {
 
                 <Input
                   type="number"
+                  min={0}
+                  max={20}
+                  step="0.25"
                   value={Number.isFinite(score) ? score : 0}
                   onChange={(e) => setScore(Number(e.target.value))}
                   placeholder="Score"
@@ -192,6 +201,10 @@ export default function StudentDetailsPage() {
                   onClick={async () => {
                     if (!subjectId) {
                       toast({ title: "Validation error", description: "Please select a subject.", variant: "error" });
+                      return;
+                    }
+                    if (!Number.isFinite(score) || score < 0 || score > 20) {
+                      toast({ title: "Validation error", description: "Score must be a number between 0 and 20.", variant: "error" });
                       return;
                     }
                     try {

@@ -94,8 +94,23 @@ export default function AdminSignupPage() {
     setError(null);
 
     const e1 = email.trim();
+    const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e1);
     if (!e1 || !password) {
-      setError("Email and password are required.");
+      const message = "Email and password are required.";
+      setError(message);
+      toast({ title: "Validation error", description: message, variant: "error" });
+      return;
+    }
+    if (!emailValid) {
+      const message = "Please enter a valid admin email.";
+      setError(message);
+      toast({ title: "Validation error", description: message, variant: "error" });
+      return;
+    }
+    if (password.length < 6) {
+      const message = "Password must be at least 6 characters.";
+      setError(message);
+      toast({ title: "Validation error", description: message, variant: "error" });
       return;
     }
 

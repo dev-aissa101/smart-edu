@@ -77,8 +77,20 @@ export default function SubjectsPage() {
   async function onSave() {
     setError(null);
     const name = form.name.trim();
-    if (!name) {
-      setError("Subject name is required.");
+    const code = form.code.trim();
+    const description = form.description.trim();
+
+    if (!name || !code || !description) {
+      const message = "Name, code, and description are required.";
+      setError(message);
+      toast({ title: "Validation error", description: message, variant: "error" });
+      return;
+    }
+
+    if (name.length < 2 || code.length < 2 || description.length < 4) {
+      const message = "Please enter longer values for all fields.";
+      setError(message);
+      toast({ title: "Validation error", description: message, variant: "error" });
       return;
     }
 
@@ -87,15 +99,15 @@ export default function SubjectsPage() {
       if (mode === "create") {
         await createSubject({
           name,
-          code: form.code.trim() || undefined,
-          description: form.description.trim() || undefined,
+          code,
+          description,
         });
       } else {
         await updateSubject({
           id: editingId,
           name,
-          code: form.code.trim() || undefined,
-          description: form.description.trim() || undefined,
+          code,
+          description,
         });
       }
       setOpen(false);

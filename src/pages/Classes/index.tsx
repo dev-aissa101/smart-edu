@@ -68,15 +68,22 @@ export default function ClassesPage() {
             <Button
               className="w-full"
               onClick={async () => {
-                if (!name.trim()) {
-                  toast({ title: "Validation error", description: "Class name is required.", variant: "error" });
+                const className = name.trim();
+                const classLevel = level.trim();
+                const classYear = year.trim();
+                if (!className || !classLevel || !classYear) {
+                  toast({ title: "Validation error", description: "Name, level, and year are required.", variant: "error" });
+                  return;
+                }
+                if (!/^\d{4}\/\d{4}$/.test(classYear)) {
+                  toast({ title: "Validation error", description: "Year must be in YYYY/YYYY format.", variant: "error" });
                   return;
                 }
                 try {
                   await createClass({
-                    name: name.trim(),
-                    level: level || undefined,
-                    year: year || undefined,
+                    name: className,
+                    level: classLevel,
+                    year: classYear,
                   });
                   setName("");
                   setLevel("");

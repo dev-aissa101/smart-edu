@@ -77,14 +77,20 @@ export default function ClassStudentsPage() {
               <Button
                 className="w-full"
                 onClick={async () => {
-                  if (!firstName.trim() || !lastName.trim()) {
+                  const first = firstName.trim();
+                  const last = lastName.trim();
+                  if (!first || !last) {
                     toast({ title: "Validation error", description: "First name and last name are required.", variant: "error" });
+                    return;
+                  }
+                  if (first.length < 2 || last.length < 2) {
+                    toast({ title: "Validation error", description: "Names must be at least 2 characters.", variant: "error" });
                     return;
                   }
                   try {
                     await createStudent({
-                      firstName: firstName.trim(),
-                      lastName: lastName.trim(),
+                      firstName: first,
+                      lastName: last,
                       classId: classId as any,
                     });
                     setFirstName("");
