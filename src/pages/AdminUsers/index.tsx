@@ -12,6 +12,7 @@ import { toast } from "@/components/ui/toast";
 export default function AdminUsersPage() {
   const users = useQuery(api.users.list);
   const createTeacher = useMutation(api.admin.createTeacher);
+  const deleteUser = useMutation(api.admin.deleteUser);
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -75,11 +76,27 @@ export default function AdminUsersPage() {
         </CardHeader>
         <CardContent>
           {users?.map((u) => (
-            <div key={u._id} className="flex justify-between py-2 border-b">
+            <div key={u._id} className="flex items-center justify-between gap-3 py-2 border-b">
               <div>
                 <b>{u.email}</b>
                 <div className="text-xs text-muted-foreground">{u.role}</div>
               </div>
+
+              <Button
+                size="sm"
+                variant="destructive"
+                onClick={async () => {
+                  if (!confirm(`Delete user ${u.email}?`)) return;
+                  try {
+                    await deleteUser({ userId: u._id });
+                    toast({ title: "User deleted", description: "User removed successfully.", variant: "success" });
+                  } catch (e: any) {
+                    toast({ title: "Delete failed", description: e?.message ?? "Failed to delete user.", variant: "error" });
+                  }
+                }}
+              >
+                Delete
+              </Button>
             </div>
           ))}
         </CardContent>

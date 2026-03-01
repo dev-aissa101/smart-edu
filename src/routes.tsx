@@ -2,6 +2,7 @@ import { createBrowserRouter } from "react-router-dom";
 
 import ProtectedRoute from "@/auth/ProtectedRoute";
 import SetupRoute from "@/auth/SetupRoute";
+import AdminOnlyRoute from "@/auth/AdminOnlyRoute";
 
 import DashboardPage from "@/pages/Dashboard";
 import LoginPage from "@/pages/Login";
@@ -40,7 +41,9 @@ export const router = createBrowserRouter([
     path: "/admin/users",
     element: (
       <ProtectedRoute>
-        <AdminUsersPage />
+        <AdminOnlyRoute>
+          <AdminUsersPage />
+        </AdminOnlyRoute>
       </ProtectedRoute>
     ),
   },

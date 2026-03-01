@@ -1,6 +1,6 @@
 import { mutation } from "./_generated/server";
 import { ConvexError, v } from "convex/values";
-import { requireRole } from "./_auth";
+import { getCurrentUser, requireRole } from "./_auth";
 import { createAccount } from "@convex-dev/auth/server";
 
 export const createTeacher = mutation({
@@ -44,5 +44,25 @@ export const createTeacher = mutation({
       isActive: true,
       createdAt: Date.now(),
     });
+  },
+});
+
+
+export const deleteUser = mutation({
+  args: {
+    userId: v.id("appUsers"),
+  },
+  handler: async (ctx, args) => {
+    await requireRole(ctx, ["admin"]);
+
+    const me = await getCurrentUser(ctx);
+    if (me?._id === args.userId) {
+      throw new ConvexError("You cannot delete your own account");
+    }
+
+    const user = await ctx.db.get(args.userId);
+    if (!user) throw new ConvexError("User not found");
+
+    await ctx.db.delete(args.userId);
   },
 });
