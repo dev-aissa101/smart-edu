@@ -22,11 +22,8 @@ export const list = query({
 
     return subjects.filter((s) => {
       const name = (s.name ?? "").toLowerCase();
-      const code = (s.code ?? "").toLowerCase();
-      const desc = (s.description ?? "").toLowerCase();
-      return (
-        name.includes(search) || code.includes(search) || desc.includes(search)
-      );
+      const coefficient = String(s.coefficient ?? "");
+      return name.includes(search) || coefficient.includes(search);
     });
   },
 });
@@ -34,8 +31,7 @@ export const list = query({
 export const create = mutation({
   args: {
     name: v.string(),
-    code: v.optional(v.string()),
-    description: v.optional(v.string()),
+    coefficient: v.number(),
   },
   handler: async (ctx, args) => {
     const user = await requireRole(ctx, ["admin"]);
@@ -44,10 +40,11 @@ export const create = mutation({
     const name = args.name.trim();
     if (!name) throw new ConvexError("Name is required");
 
+    if (args.coefficient <= 0) throw new ConvexError("Coefficient must be greater than 0");
+
     const id = await ctx.db.insert("subjects", {
       name,
-      code: args.code?.trim() || undefined,
-      description: args.description?.trim() || undefined,
+      coefficient: args.coefficient,
       createdAt: Date.now(),
       createdBy: user._id,
     });
@@ -60,8 +57,7 @@ export const update = mutation({
   args: {
     id: v.id("subjects"),
     name: v.string(),
-    code: v.optional(v.string()),
-    description: v.optional(v.string()),
+    coefficient: v.number(),
   },
   handler: async (ctx, args) => {
     const user = await requireRole(ctx, ["admin"]);
@@ -70,10 +66,11 @@ export const update = mutation({
     const name = args.name.trim();
     if (!name) throw new ConvexError("Name is required");
 
+    if (args.coefficient <= 0) throw new ConvexError("Coefficient must be greater than 0");
+
     await ctx.db.patch(args.id, {
       name,
-      code: args.code?.trim() || undefined,
-      description: args.description?.trim() || undefined,
+      coefficient: args.coefficient,
     });
   },
 });
