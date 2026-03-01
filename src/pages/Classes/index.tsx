@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { toast } from "@/components/ui/toast";
 import {
   Table,
   TableBody,
@@ -67,14 +68,29 @@ export default function ClassesPage() {
             <Button
               className="w-full"
               onClick={async () => {
-                if (!name.trim()) return;
-                await createClass({
-                  name: name.trim(),
-                  level: level || undefined,
-                  year: year || undefined,
-                });
-                setName("");
-                setLevel("");
+                const className = name.trim();
+                const classLevel = level.trim();
+                const classYear = year.trim();
+                if (!className || !classLevel || !classYear) {
+                  toast({ title: "Validation error", description: "Name, level, and year are required.", variant: "error" });
+                  return;
+                }
+                if (!/^\d{4}\/\d{4}$/.test(classYear)) {
+                  toast({ title: "Validation error", description: "Year must be in YYYY/YYYY format.", variant: "error" });
+                  return;
+                }
+                try {
+                  await createClass({
+                    name: className,
+                    level: classLevel,
+                    year: classYear,
+                  });
+                  setName("");
+                  setLevel("");
+                  toast({ title: "Class created", description: "Class saved successfully.", variant: "success" });
+                } catch (e: any) {
+                  toast({ title: "Create failed", description: e?.message ?? "Failed to create class.", variant: "error" });
+                }
               }}
             >
               Add
