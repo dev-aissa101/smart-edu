@@ -64,6 +64,9 @@ export const add = mutation({
       throw new ConvexError("Score must be between 0 and 20");
     }
 
+    const subject = await ctx.db.get(args.subjectId);
+    if (!subject) throw new ConvexError("Subject not found");
+
     const existing = await ctx.db
       .query("grades")
       .withIndex("by_student_subject_term", (q) =>
@@ -83,7 +86,7 @@ export const add = mutation({
     return await ctx.db.insert("grades", {
       ...args,
       maxScore: args.maxScore ?? 20,
-      coefficient: args.coefficient ?? 1,
+      coefficient: subject.coefficient ?? 1,
       note: args.note?.trim() || undefined,
       createdAt: Date.now(),
       createdBy: user._id,

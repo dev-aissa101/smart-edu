@@ -28,7 +28,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { toast } from "@/components/ui/toast";
 
-const TERMS = ["S1", "S2", "T1", "T2", "T3"] as const;
+const TERMS = ["S1", "S2"] as const;
 
 export default function StudentDetailsPage() {
   const { studentId } = useParams();
@@ -53,6 +53,22 @@ export default function StudentDetailsPage() {
     studentId: studentId as any,
     term,
   });
+  const avgS1 = useQuery(api.grades.averageForStudentTerm, {
+    studentId: studentId as any,
+    term: "S1",
+  });
+  const avgS2 = useQuery(api.grades.averageForStudentTerm, {
+    studentId: studentId as any,
+    term: "S2",
+  });
+
+  const globalAverage = useMemo(() => {
+    const values = [avgS1?.average, avgS2?.average].filter((v): v is number =>
+      typeof v === "number",
+    );
+    if (values.length === 0) return null;
+    return Number((values.reduce((a, b) => a + b, 0) / values.length).toFixed(2));
+  }, [avgS1?.average, avgS2?.average]);
 
   const [subjectId, setSubjectId] = useState<string>("");
   const [score, setScore] = useState<number>(0);
@@ -175,13 +191,18 @@ export default function StudentDetailsPage() {
             </div>
 
             <div className="flex items-center gap-2">
-              <Badge variant="secondary">Average</Badge>
+              <Badge variant="secondary">{term} average</Badge>
               <span className="text-2xl font-semibold">
                 {avg?.average ?? "—"}
               </span>
               <span className="text-sm text-muted-foreground">
                 ({avg?.count ?? 0} grades)
               </span>
+            </div>
+
+            <div className="rounded-md border bg-muted/20 p-3">
+              <div className="text-sm text-muted-foreground">Global average (S1 + S2)</div>
+              <div className="mt-1 text-2xl font-semibold">{globalAverage ?? "—"}</div>
             </div>
 
             <div className="grid gap-2">

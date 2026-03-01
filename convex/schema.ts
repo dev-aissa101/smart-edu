@@ -58,14 +58,11 @@ export default defineSchema({
 
   subjects: defineTable({
     name: v.string(),
-    code: v.optional(v.string()),
-    description: v.optional(v.string()),
+    coefficient: v.number(),
 
     createdAt: v.number(),
     createdBy: v.optional(v.id("appUsers")),
-  })
-    .index("by_name", ["name"])
-    .index("by_code", ["code"]),
+  }).index("by_name", ["name"]),
 
   attendance: defineTable({
     studentId: v.id("students"),
