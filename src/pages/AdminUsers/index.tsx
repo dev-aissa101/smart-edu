@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { toast } from "@/components/ui/toast";
 
 export default function AdminUsersPage() {
   const users = useQuery(api.users.list);
@@ -37,10 +38,29 @@ export default function AdminUsersPage() {
           <div className="flex items-end">
             <Button
               onClick={async () => {
-                if (!email) return;
-                await createTeacher({ email, name });
-                setEmail("");
-                setName("");
+                const e1 = email.trim();
+                const n1 = name.trim();
+                const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e1);
+                if (!e1 || !n1) {
+                  toast({ title: "Validation error", description: "Email and name are required.", variant: "error" });
+                  return;
+                }
+                if (!emailValid) {
+                  toast({ title: "Validation error", description: "Please enter a valid teacher email.", variant: "error" });
+                  return;
+                }
+                if (n1.length < 2) {
+                  toast({ title: "Validation error", description: "Name must be at least 2 characters.", variant: "error" });
+                  return;
+                }
+                try {
+                  await createTeacher({ email: e1, name: n1 });
+                  setEmail("");
+                  setName("");
+                  toast({ title: "Teacher added", description: "User created successfully.", variant: "success" });
+                } catch (e: any) {
+                  toast({ title: "Create failed", description: e?.message ?? "Failed to add teacher.", variant: "error" });
+                }
               }}
             >
               Add

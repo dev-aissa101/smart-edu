@@ -26,6 +26,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { toast } from "@/components/ui/toast";
 
 const TERMS = ["S1", "S2", "T1", "T2", "T3"] as const;
 
@@ -112,12 +113,26 @@ export default function StudentDetailsPage() {
             </div>
             <Button
               onClick={async () => {
-                if (!firstName.trim() || !lastName.trim()) return;
-                await updateStudent({
-                  studentId: student._id,
-                  firstName: firstName.trim(),
-                  lastName: lastName.trim(),
-                });
+                const first = firstName.trim();
+                const last = lastName.trim();
+                if (!first || !last) {
+                  toast({ title: "Validation error", description: "First name and last name are required.", variant: "error" });
+                  return;
+                }
+                if (first.length < 2 || last.length < 2) {
+                  toast({ title: "Validation error", description: "Names must be at least 2 characters.", variant: "error" });
+                  return;
+                }
+                try {
+                  await updateStudent({
+                    studentId: student._id,
+                    firstName: first,
+                    lastName: last,
+                  });
+                  toast({ title: "Student updated", description: "Profile saved successfully.", variant: "success" });
+                } catch (e: any) {
+                  toast({ title: "Update failed", description: e?.message ?? "Failed to update student.", variant: "error" });
+                }
               }}
             >
               Save
@@ -174,6 +189,9 @@ export default function StudentDetailsPage() {
 
                 <Input
                   type="number"
+                  min={0}
+                  max={20}
+                  step="0.25"
                   value={Number.isFinite(score) ? score : 0}
                   onChange={(e) => setScore(Number(e.target.value))}
                   placeholder="Score"
@@ -181,15 +199,27 @@ export default function StudentDetailsPage() {
 
                 <Button
                   onClick={async () => {
-                    if (!subjectId) return;
-                    await addGrade({
-                      studentId: student._id,
-                      subjectId: subjectId as any,
-                      term,
-                      score,
-                      maxScore: 20,
-                    });
-                    setScore(0);
+                    if (!subjectId) {
+                      toast({ title: "Validation error", description: "Please select a subject.", variant: "error" });
+                      return;
+                    }
+                    if (!Number.isFinite(score) || score < 0 || score > 20) {
+                      toast({ title: "Validation error", description: "Score must be a number between 0 and 20.", variant: "error" });
+                      return;
+                    }
+                    try {
+                      await addGrade({
+                        studentId: student._id,
+                        subjectId: subjectId as any,
+                        term,
+                        score,
+                        maxScore: 20,
+                      });
+                      setScore(0);
+                      toast({ title: "Grade added", description: "Grade saved successfully.", variant: "success" });
+                    } catch (e: any) {
+                      toast({ title: "Add grade failed", description: e?.message ?? "Failed to add grade.", variant: "error" });
+                    }
                   }}
                 >
                   Add

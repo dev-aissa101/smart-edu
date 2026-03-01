@@ -16,6 +16,7 @@ import {
 import { Label } from "@/components/ui/label";
 
 import { Plus, Pencil, Trash2, BookOpen } from "lucide-react";
+import { toast } from "@/components/ui/toast";
 
 type SubjectForm = {
   name: string;
@@ -76,8 +77,20 @@ export default function SubjectsPage() {
   async function onSave() {
     setError(null);
     const name = form.name.trim();
-    if (!name) {
-      setError("Subject name is required.");
+    const code = form.code.trim();
+    const description = form.description.trim();
+
+    if (!name || !code || !description) {
+      const message = "Name, code, and description are required.";
+      setError(message);
+      toast({ title: "Validation error", description: message, variant: "error" });
+      return;
+    }
+
+    if (name.length < 2 || code.length < 2 || description.length < 4) {
+      const message = "Please enter longer values for all fields.";
+      setError(message);
+      toast({ title: "Validation error", description: message, variant: "error" });
       return;
     }
 
@@ -86,20 +99,23 @@ export default function SubjectsPage() {
       if (mode === "create") {
         await createSubject({
           name,
-          code: form.code.trim() || undefined,
-          description: form.description.trim() || undefined,
+          code,
+          description,
         });
       } else {
         await updateSubject({
           id: editingId,
           name,
-          code: form.code.trim() || undefined,
-          description: form.description.trim() || undefined,
+          code,
+          description,
         });
       }
       setOpen(false);
+      toast({ title: mode === "create" ? "Subject created" : "Subject updated", description: "Saved successfully.", variant: "success" });
     } catch (e: any) {
-      setError(e?.message ?? "Failed to save.");
+      const message = e?.message ?? "Failed to save.";
+      setError(message);
+      toast({ title: "Save failed", description: message, variant: "error" });
     } finally {
       setSaving(false);
     }
@@ -109,8 +125,10 @@ export default function SubjectsPage() {
     if (!confirm("Delete this subject?")) return;
     try {
       await removeSubject({ id });
+      toast({ title: "Subject deleted", description: "Deleted successfully.", variant: "success" });
     } catch (e: any) {
-      alert(e?.message ?? "Failed to delete.");
+      const message = e?.message ?? "Failed to delete.";
+      toast({ title: "Delete failed", description: message, variant: "error" });
     }
   }
 
