@@ -26,8 +26,9 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { toast } from "@/components/ui/toast";
 
-const TERMS = ["S1", "S2", "T1", "T2", "T3"] as const;
+const TERMS = ["S1", "S2"] as const;
 
 export default function StudentDetailsPage() {
   const { studentId } = useParams();
@@ -41,6 +42,8 @@ export default function StudentDetailsPage() {
 
   const updateStudent = useMutation(api.students.update);
   const addGrade = useMutation(api.grades.add);
+  const updateGrade = useMutation(api.grades.update);
+  const removeGrade = useMutation(api.grades.remove);
 
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
@@ -50,9 +53,30 @@ export default function StudentDetailsPage() {
     studentId: studentId as any,
     term,
   });
+  const avgS1 = useQuery(api.grades.averageForStudentTerm, {
+    studentId: studentId as any,
+    term: "S1",
+  });
+  const avgS2 = useQuery(api.grades.averageForStudentTerm, {
+    studentId: studentId as any,
+    term: "S2",
+  });
+
+  const globalAverage = useMemo(() => {
+    const values = [avgS1?.average, avgS2?.average].filter((v): v is number =>
+      typeof v === "number",
+    );
+    if (values.length === 0) return null;
+    return Number((values.reduce((a, b) => a + b, 0) / values.length).toFixed(2));
+  }, [avgS1?.average, avgS2?.average]);
 
   const [subjectId, setSubjectId] = useState<string>("");
   const [score, setScore] = useState<number>(0);
+  const [note, setNote] = useState("");
+
+  const [editingGradeId, setEditingGradeId] = useState<string | null>(null);
+  const [editScore, setEditScore] = useState<number>(0);
+  const [editNote, setEditNote] = useState("");
 
   // Prefill edit fields when student loads
   useMemo(() => {
@@ -65,6 +89,12 @@ export default function StudentDetailsPage() {
     if (!grades) return [];
     return grades.filter((g) => g.term === term);
   }, [grades, term]);
+
+  const subjectNameById = useMemo(() => {
+    const map = new Map<string, string>();
+    (subjects ?? []).forEach((s) => map.set(s._id, s.name));
+    return map;
+  }, [subjects]);
 
   if (student === undefined)
     return (
@@ -112,12 +142,26 @@ export default function StudentDetailsPage() {
             </div>
             <Button
               onClick={async () => {
-                if (!firstName.trim() || !lastName.trim()) return;
-                await updateStudent({
-                  studentId: student._id,
-                  firstName: firstName.trim(),
-                  lastName: lastName.trim(),
-                });
+                const first = firstName.trim();
+                const last = lastName.trim();
+                if (!first || !last) {
+                  toast({ title: "Validation error", description: "First name and last name are required.", variant: "error" });
+                  return;
+                }
+                if (first.length < 2 || last.length < 2) {
+                  toast({ title: "Validation error", description: "Names must be at least 2 characters.", variant: "error" });
+                  return;
+                }
+                try {
+                  await updateStudent({
+                    studentId: student._id,
+                    firstName: first,
+                    lastName: last,
+                  });
+                  toast({ title: "Student updated", description: "Profile saved successfully.", variant: "success" });
+                } catch (e: any) {
+                  toast({ title: "Update failed", description: e?.message ?? "Failed to update student.", variant: "error" });
+                }
               }}
             >
               Save
@@ -147,7 +191,7 @@ export default function StudentDetailsPage() {
             </div>
 
             <div className="flex items-center gap-2">
-              <Badge variant="secondary">Average</Badge>
+              <Badge variant="secondary">{term} average</Badge>
               <span className="text-2xl font-semibold">
                 {avg?.average ?? "—"}
               </span>
@@ -156,9 +200,14 @@ export default function StudentDetailsPage() {
               </span>
             </div>
 
+            <div className="rounded-md border bg-muted/20 p-3">
+              <div className="text-sm text-muted-foreground">Global average (S1 + S2)</div>
+              <div className="mt-1 text-2xl font-semibold">{globalAverage ?? "—"}</div>
+            </div>
+
             <div className="grid gap-2">
               <Label>Add grade</Label>
-              <div className="grid gap-2 md:grid-cols-3">
+              <div className="grid gap-2 md:grid-cols-4">
                 <Select value={subjectId} onValueChange={setSubjectId}>
                   <SelectTrigger>
                     <SelectValue placeholder="Subject" />
@@ -174,29 +223,60 @@ export default function StudentDetailsPage() {
 
                 <Input
                   type="number"
+                  min={0}
+                  max={20}
+                  step="0.25"
                   value={Number.isFinite(score) ? score : 0}
                   onChange={(e) => setScore(Number(e.target.value))}
                   placeholder="Score"
                 />
 
+                <Input
+                  value={note}
+                  onChange={(e) => setNote(e.target.value)}
+                  placeholder="Note"
+                />
+
                 <Button
                   onClick={async () => {
-                    if (!subjectId) return;
-                    await addGrade({
-                      studentId: student._id,
-                      subjectId: subjectId as any,
-                      term,
-                      score,
-                      maxScore: 20,
-                    });
-                    setScore(0);
+                    if (!subjectId) {
+                      toast({ title: "Validation error", description: "Please select a subject.", variant: "error" });
+                      return;
+                    }
+                    if (!Number.isFinite(score) || score < 0 || score > 20) {
+                      toast({ title: "Validation error", description: "Score must be a number between 0 and 20.", variant: "error" });
+                      return;
+                    }
+                    const alreadyExists = gradesForTerm.some(
+                      (g) => g.subjectId === subjectId,
+                    );
+                    if (alreadyExists) {
+                      toast({ title: "Validation error", description: "This subject already has a grade in this term.", variant: "error" });
+                      return;
+                    }
+                    try {
+                      await addGrade({
+                        studentId: student._id,
+                        subjectId: subjectId as any,
+                        term,
+                        score,
+                        note: note.trim() || undefined,
+                        maxScore: 20,
+                      });
+                      setScore(0);
+                      setNote("");
+                      setSubjectId("");
+                      toast({ title: "Grade added", description: "Grade saved successfully.", variant: "success" });
+                    } catch (e: any) {
+                      toast({ title: "Add grade failed", description: e?.message ?? "Failed to add grade.", variant: "error" });
+                    }
                   }}
                 >
                   Add
                 </Button>
               </div>
               <p className="text-xs text-muted-foreground">
-                Scores are normalized on /20 in averages.
+                Only one grade per subject is allowed for each term. Scores are on /20.
               </p>
             </div>
           </CardContent>
@@ -218,21 +298,119 @@ export default function StudentDetailsPage() {
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead>Subject</TableHead>
                   <TableHead>Score</TableHead>
                   <TableHead>Max</TableHead>
                   <TableHead>Note</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {gradesForTerm.map((g) => (
-                  <TableRow key={g._id}>
-                    <TableCell className="font-medium">{g.score}</TableCell>
-                    <TableCell>{g.maxScore ?? 20}</TableCell>
-                    <TableCell className="text-muted-foreground">
-                      {g.note ?? "—"}
-                    </TableCell>
-                  </TableRow>
-                ))}
+                {gradesForTerm.map((g) => {
+                  const isEditing = editingGradeId === g._id;
+                  return (
+                    <TableRow key={g._id}>
+                      <TableCell className="font-medium">
+                        {subjectNameById.get(g.subjectId) ?? "—"}
+                      </TableCell>
+                      <TableCell>
+                        {isEditing ? (
+                          <Input
+                            type="number"
+                            min={0}
+                            max={20}
+                            step="0.25"
+                            value={Number.isFinite(editScore) ? editScore : 0}
+                            onChange={(e) => setEditScore(Number(e.target.value))}
+                          />
+                        ) : (
+                          g.score
+                        )}
+                      </TableCell>
+                      <TableCell>{g.maxScore ?? 20}</TableCell>
+                      <TableCell className="text-muted-foreground">
+                        {isEditing ? (
+                          <Input
+                            value={editNote}
+                            onChange={(e) => setEditNote(e.target.value)}
+                            placeholder="Note"
+                          />
+                        ) : (
+                          g.note ?? "—"
+                        )}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="inline-flex gap-2">
+                          {isEditing ? (
+                            <>
+                              <Button
+                                size="sm"
+                                onClick={async () => {
+                                  if (!Number.isFinite(editScore) || editScore < 0 || editScore > 20) {
+                                    toast({ title: "Validation error", description: "Score must be a number between 0 and 20.", variant: "error" });
+                                    return;
+                                  }
+                                  try {
+                                    await updateGrade({
+                                      gradeId: g._id,
+                                      score: editScore,
+                                      note: editNote.trim() || undefined,
+                                    });
+                                    setEditingGradeId(null);
+                                    toast({ title: "Grade updated", description: "Grade updated successfully.", variant: "success" });
+                                  } catch (e: any) {
+                                    toast({ title: "Update failed", description: e?.message ?? "Failed to update grade.", variant: "error" });
+                                  }
+                                }}
+                              >
+                                Save
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="secondary"
+                                onClick={() => setEditingGradeId(null)}
+                              >
+                                Cancel
+                              </Button>
+                            </>
+                          ) : (
+                            <>
+                              <Button
+                                size="sm"
+                                variant="secondary"
+                                onClick={() => {
+                                  setEditingGradeId(g._id);
+                                  setEditScore(g.score);
+                                  setEditNote(g.note ?? "");
+                                }}
+                              >
+                                Edit
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="destructive"
+                                onClick={async () => {
+                                  if (!confirm("Delete this grade?")) return;
+                                  try {
+                                    await removeGrade({ gradeId: g._id });
+                                    if (editingGradeId === g._id) {
+                                      setEditingGradeId(null);
+                                    }
+                                    toast({ title: "Grade deleted", description: "Grade removed successfully.", variant: "success" });
+                                  } catch (e: any) {
+                                    toast({ title: "Delete failed", description: e?.message ?? "Failed to delete grade.", variant: "error" });
+                                  }
+                                }}
+                              >
+                                Delete
+                              </Button>
+                            </>
+                          )}
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
               </TableBody>
             </Table>
           )}

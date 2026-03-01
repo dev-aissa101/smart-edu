@@ -14,6 +14,7 @@ import {
 import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { toast } from "@/components/ui/toast";
 
 export default function AdminSignupPage() {
   const navigate = useNavigate();
@@ -41,10 +42,13 @@ export default function AdminSignupPage() {
 
     ensureUser({ email: pendingEmail })
       .then(() => {
+        toast({ title: "Admin created", description: "Setup completed successfully.", variant: "success" });
         navigate("/", { replace: true });
       })
       .catch((err: any) => {
-        setError(err?.message ?? "Failed to create admin user.");
+        const message = err?.message ?? "Failed to create admin user.";
+        setError(message);
+        toast({ title: "Setup failed", description: message, variant: "error" });
       })
       .finally(() => {
         setLoading(false);
@@ -90,8 +94,23 @@ export default function AdminSignupPage() {
     setError(null);
 
     const e1 = email.trim();
+    const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e1);
     if (!e1 || !password) {
-      setError("Email and password are required.");
+      const message = "Email and password are required.";
+      setError(message);
+      toast({ title: "Validation error", description: message, variant: "error" });
+      return;
+    }
+    if (!emailValid) {
+      const message = "Please enter a valid admin email.";
+      setError(message);
+      toast({ title: "Validation error", description: message, variant: "error" });
+      return;
+    }
+    if (password.length < 6) {
+      const message = "Password must be at least 6 characters.";
+      setError(message);
+      toast({ title: "Validation error", description: message, variant: "error" });
       return;
     }
 
@@ -109,7 +128,9 @@ export default function AdminSignupPage() {
       // Save email and wait for isAuthenticated in useEffect
       setPendingEmail(e1);
     } catch (err: any) {
-      setError(err?.message ?? "Setup failed.");
+      const message = err?.message ?? "Setup failed.";
+      setError(message);
+      toast({ title: "Setup failed", description: message, variant: "error" });
       setLoading(false);
     }
   }
