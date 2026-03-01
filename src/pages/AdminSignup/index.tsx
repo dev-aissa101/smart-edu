@@ -14,6 +14,7 @@ import {
 import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { toast } from "@/components/ui/toast";
 
 export default function AdminSignupPage() {
   const navigate = useNavigate();
@@ -41,10 +42,13 @@ export default function AdminSignupPage() {
 
     ensureUser({ email: pendingEmail })
       .then(() => {
+        toast({ title: "Admin created", description: "Setup completed successfully.", variant: "success" });
         navigate("/", { replace: true });
       })
       .catch((err: any) => {
-        setError(err?.message ?? "Failed to create admin user.");
+        const message = err?.message ?? "Failed to create admin user.";
+        setError(message);
+        toast({ title: "Setup failed", description: message, variant: "error" });
       })
       .finally(() => {
         setLoading(false);
@@ -109,7 +113,9 @@ export default function AdminSignupPage() {
       // Save email and wait for isAuthenticated in useEffect
       setPendingEmail(e1);
     } catch (err: any) {
-      setError(err?.message ?? "Setup failed.");
+      const message = err?.message ?? "Setup failed.";
+      setError(message);
+      toast({ title: "Setup failed", description: message, variant: "error" });
       setLoading(false);
     }
   }

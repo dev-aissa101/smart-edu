@@ -11,6 +11,7 @@ import {
 import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { useAuthActions } from "@convex-dev/auth/react";
+import { toast } from "@/components/ui/toast";
 
 export function LoginForm({
   className,
@@ -44,8 +45,11 @@ export function LoginForm({
         flow: "signIn", // ✅ login only
       });
       localStorage.setItem(PENDING_LOGIN_EMAIL_KEY, e1);
+      toast({ title: "Login successful", description: "Welcome back!", variant: "success" });
     } catch (err: any) {
-      setError(err?.message ?? "Login failed.");
+      const message = err?.message ?? "Login failed.";
+      setError(message);
+      toast({ title: "Login failed", description: message, variant: "error" });
     } finally {
       setLoading(false);
     }

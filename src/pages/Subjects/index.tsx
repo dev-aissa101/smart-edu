@@ -16,6 +16,7 @@ import {
 import { Label } from "@/components/ui/label";
 
 import { Plus, Pencil, Trash2, BookOpen } from "lucide-react";
+import { toast } from "@/components/ui/toast";
 
 type SubjectForm = {
   name: string;
@@ -98,8 +99,11 @@ export default function SubjectsPage() {
         });
       }
       setOpen(false);
+      toast({ title: mode === "create" ? "Subject created" : "Subject updated", description: "Saved successfully.", variant: "success" });
     } catch (e: any) {
-      setError(e?.message ?? "Failed to save.");
+      const message = e?.message ?? "Failed to save.";
+      setError(message);
+      toast({ title: "Save failed", description: message, variant: "error" });
     } finally {
       setSaving(false);
     }
@@ -109,8 +113,10 @@ export default function SubjectsPage() {
     if (!confirm("Delete this subject?")) return;
     try {
       await removeSubject({ id });
+      toast({ title: "Subject deleted", description: "Deleted successfully.", variant: "success" });
     } catch (e: any) {
-      alert(e?.message ?? "Failed to delete.");
+      const message = e?.message ?? "Failed to delete.";
+      toast({ title: "Delete failed", description: message, variant: "error" });
     }
   }
 

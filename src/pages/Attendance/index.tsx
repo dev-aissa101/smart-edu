@@ -2,6 +2,7 @@ import AppLayout from "@/components/app-layout";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { useMemo, useState } from "react";
+import { toast } from "@/components/ui/toast";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
@@ -141,14 +142,19 @@ export default function AttendancePage() {
                               key={x}
                               size="sm"
                               variant={st === x ? "default" : "secondary"}
-                              onClick={() =>
-                                upsert({
-                                  studentId: s._id as any,
-                                  classId: classId as any,
-                                  date,
-                                  status: x,
-                                })
-                              }
+                              onClick={async () => {
+                                try {
+                                  await upsert({
+                                    studentId: s._id as any,
+                                    classId: classId as any,
+                                    date,
+                                    status: x,
+                                  });
+                                  toast({ title: "Attendance saved", description: `${s.firstName} ${s.lastName}: ${x}`, variant: "success" });
+                                } catch (e: any) {
+                                  toast({ title: "Save failed", description: e?.message ?? "Failed to update attendance.", variant: "error" });
+                                }
+                              }}
                             >
                               {x}
                             </Button>
